@@ -55,47 +55,11 @@ dependencies {
 afterEvaluate {
     publishing {
         publications {
-            register<MavenPublication>("release") {
+            create<MavenPublication>("release") {
+                from(components["release"])
                 groupId = "com.github.CodeWithAthari"
                 artifactId = "composewebkit"
                 version = "1.0.0"
-
-                // Include all the artifacts
-                from(components["release"])
-
-                // Include additional artifacts
-                artifact("$buildDir/outputs/aar/${project.name}-release.aar")
-
-                // Optional: Include sources
-                artifact(tasks.register("androidSourcesJar", Jar::class) {
-                    archiveClassifier.set("sources")
-                    from(android.sourceSets.getByName("main").java.srcDirs)
-                })
-
-                pom {
-                    name.set("ComposeWebKit")
-                    description.set("Compose WebView with awesome syntax")
-                    url.set("https://github.com/CodeWithAthari/ComposeWebKit")
-
-                    licenses {
-                        license {
-                            name.set("The Apache License, Version 2.0")
-                            url.set("http://www.apache.org/licenses/LICENSE-2.0.txt")
-                        }
-                    }
-                    developers {
-                        developer {
-                            id.set("CodeWithAthari")
-                            name.set("Athar Gul")
-                            email.set("atriidev+code@gmail.com")
-                        }
-                    }
-                    scm {
-                        connection.set("scm:git:git://github.com/CodeWithAthari/ComposeWebKit.git")
-                        developerConnection.set("scm:git:ssh://github.com/CodeWithAthari/ComposeWebKit.git")
-                        url.set("https://github.com/CodeWithAthari/ComposeWebKit")
-                    }
-                }
             }
         }
     }
