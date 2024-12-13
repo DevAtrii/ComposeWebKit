@@ -59,7 +59,7 @@ afterEvaluate {
                 from(components["release"])
                 groupId = "com.github.devatrii"
                 artifactId = "ComposeWebKit"
-                version = "1.0.0.7"
+                version = "1.0"
             }
         }
     }
