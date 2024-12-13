@@ -69,6 +69,5 @@ dependencies {
     debugImplementation(libs.androidx.ui.tooling)
     debugImplementation(libs.androidx.ui.test.manifest)
 //    implementation(project(":ComposeWebKit"))
-    implementation("com.github.CodeWithAthari:ComposeWebKit:1.0.0.4")
 
 }

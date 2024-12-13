@@ -11,10 +11,6 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.tooling.preview.Preview
-import dev.atrii.composewebkit.ComposeWebView
-import dev.atrii.composewebkit.ComposeWebViewManager
-import dev.atrii.composewebkit.configureWebClients
-import dev.atrii.composewebkit.rememberComposeWebViewState
 import dev.atrii.composewebkitapp.ui.theme.ComposeWebKitTheme
 
 class MainActivity : ComponentActivity() {

@@ -5,6 +5,9 @@ plugins {
 
 }
 
+group = "com.github.devatrii"
+version = "1.0"
+
 android {
     namespace = "dev.atrii.composewebkit"
     compileSdk = 35
