@@ -57,9 +57,9 @@ afterEvaluate {
         publications {
             create<MavenPublication>("release") {
                 from(components["release"])
-                groupId = "com.github.CodeWithAthari"
-                artifactId = "composewebkit"
-                version = "1.0.0"
+                groupId = "com.github.devatrii"
+                artifactId = "ComposeWebKit"
+                version = "1.0.0.7"
             }
         }
     }
