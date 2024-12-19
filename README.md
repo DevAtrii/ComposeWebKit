@@ -20,7 +20,7 @@ A modern WebView wrapper for Jetpack Compose that provides easy state management
 2: Add dependency in `build.gradle.kts`
 ```kotlin
 dependencies {
-    implementation("com.github.DevAtrii:ComposeWebKit:replace-version")
+    implementation("com.github.DevAtrii:ComposeWebKit:2.0")
 }
 ```
 
@@ -33,7 +33,7 @@ dependencies {
 2: Add dependency in `build.gradle.kts`
 ```gropvy
 dependencies {
-    implementation 'com.github.DevAtrii:ComposeWebKit:reaplce-version'
+    implementation 'com.github.DevAtrii:ComposeWebKit:2.0'
 }
 ```
 ⚠️ Don't forget to replace the version
