@@ -1,63 +1,64 @@
+
 # ComposeWebKit (Dev Atrii)
 
 https://github.com/user-attachments/assets/ab388668-7081-4ccf-80c3-0f9b1248237d
 
-A modern WebView wrapper for Jetpack Compose that provides easy state management and configuration options.
-[![YouTube Channel](https://img.shields.io/badge/YouTube-Subscribe-red?style=for-the-badge&logo=youtube)](https://www.youtube.com/@devatrii/videos)
-[📺 Watch Tutorials & Development Content](https://www.youtube.com/@devatrii/videos)
+A modern WebView wrapper for Jetpack Compose that provides easy state management, multiple instance support, and rich configuration options.
 
 [![](https://jitpack.io/v/DevAtrii/ComposeWebKit.svg)](https://jitpack.io/#DevAtrii/ComposeWebKit)
 ![badge-Android](https://img.shields.io/badge/Platform-Android-brightgreen)
 ![badge-Kotlin](https://img.shields.io/badge/Language-Kotlin-blue)
+
+## Features
+
+- 🌐 Multiple WebView instances support
+- 🔄 Pull-to-refresh functionality
+- 📱 Progress tracking
+- ⚙️ Extensive configuration options
+- 🎯 State preservation
+- ↩️ Back navigation handling
+- 🔒 SSL/Security handling
+- 🎨 Custom client configurations
+
 ## Installation
 
 ### Kotlin DSL
 
-1: Add jitpack repo in `settings.gradle.kts`
+1. Add JitPack repository in `settings.gradle.kts`:
 ```kotlin
- maven (url = "https://jitpack.io")
-```
-2: Add dependency in `build.gradle.kts`
-```kotlin
-dependencies {
-    implementation("com.github.DevAtrii:ComposeWebKit:2.0")
+dependencyResolutionManagement {
+    repositories {
+        // ...
+        maven(url = "https://jitpack.io")
+    }
 }
 ```
 
-### Groovy
-
-1: Add jitpack repo in `settings.gradle.kts`
-```gropvy
- maven { url 'https://jitpack.io' }
-```
-2: Add dependency in `build.gradle.kts`
-```gropvy
+2. Add dependency in `build.gradle.kts`:
+```kotlin
 dependencies {
-    implementation 'com.github.DevAtrii:ComposeWebKit:2.0'
+    implementation("com.github.DevAtrii:ComposeWebKit:latest-version")
 }
 ```
-⚠️ Don't forget to replace the version
 
-### Permissions
-Add Internet Permissions in `AndroidManifest.xml`
-``` xml
+### Required Permissions
+
+Add these permissions to your `AndroidManifest.xml`:
+```xml
 <uses-permission android:name="android.permission.INTERNET" />
 <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
 
 <application
     android:usesCleartextTraffic="true"
     ...
+>
 ```
 
-    
-    
-## Usage/Examples
-Below is the simple example for `ComposeWebView`
+## Basic Usage
 
 ```kotlin
 val webState = rememberComposeWebViewState(
-    url = "https://atrii.dev",
-    handleBackPressEvents = true, // if true then call onBackPress else won't (true by default)
+    url = "https://example.com",
     onBackPress = { manager ->
         if (manager.webView.canGoBack())
             manager.webView.goBack()
@@ -65,91 +66,197 @@ val webState = rememberComposeWebViewState(
             finish()
     }
 ) {
-    // Todo configure ComposeWebView Here
+    // Configure WebView here
 }
 
 ComposeWebView(
-    modifier = Modifier,
-    webViewState = webState
+    modifier = Modifier.fillMaxSize(),
+    state = webState
 )
 ```
 
-### Configuring ComposeWebView
-Just like `WebView` you can customise this. In order to customise we can use configure lambda in `webState`. In configure lambda we can use following functions:
+## Advanced Usage
 
-| Function | Description | Common Use Cases |
-|----------|-------------|-----------------|
-| `configureWebClients { }` | Configures the WebViewClient which handles URL loading, errors, and page navigation events. | • Custom URL handling • Error handling • SSL certificate handling • Page start/finish events • Custom redirects |
-| `configureWebChromeClients { }` | Configures the WebChromeClient which handles JavaScript dialogs, favicons, and progress events. | • Progress tracking • JavaScript alerts/confirms • Custom title handling • File upload handling • Fullscreen video support |
-| `configureWebSettings { }` | Configures WebSettings which control the WebView's behavior and features. | • JavaScript enable/disable • Cache settings • Zoom controls • Text size • User-agent string • DOM storage |
-| `configureWebView { }` | Direct access to configure the WebView instance itself. | • Layout parameters • Scroll settings • Hardware acceleration • Initial scale • Custom attributes |
+### Pull-to-Refresh
 
-Let's create ComposeWebView using above functions. We'll enable `cache`, `javascript` & implement `progress-indicator`.
-
-``` kotlin
-var progress by remember {
-    mutableFloatStateOf(0f)
-}
+```kotlin
+var isRefreshing by rememberSaveable { mutableStateOf(false) }
 val scope = rememberCoroutineScope()
+val navigator = rememberWebViewNavigator()
 
+ComposeWebView(
+    modifier = Modifier.fillMaxSize(),
+    state = webState,
+    pull2Refresh = true,
+    isRefreshing = isRefreshing,
+    navigator = navigator,
+    onRefresh = {
+        scope.launch {
+            isRefreshing = true
+            navigator.reload()
+            delay(1000)
+            isRefreshing = false
+        }
+    }
+)
+```
+
+### Progress Tracking
+
+```kotlin
+var progress by remember { mutableFloatStateOf(0f) }
 
 val webState = rememberComposeWebViewState(
-    url = "https://atrii.dev",
-    onBackPress = { manager ->
-        if (manager.webView.canGoBack())
-            manager.webView.goBack()
-        else
-            finish()
-    },
-){
-    configureWebSettings { 
-        cacheMode = WebSettings.LOAD_CACHE_ELSE_NETWORK
-        javaScriptEnabled = true
-    }
-
+    url = "https://example.com"
+) {
     configureWebChromeClients {
-        onProgressChanged { webView, newProgress ->
-            scope.launch {
-                progress = newProgress.toFloat()
-            }
+        onProgressChanged { _, newProgress ->
+            progress = newProgress.toFloat()
         }
     }
 }
 
-
-ComposeWebView(
-    modifier = Modifier,
-    webViewState = webState
-)
-
-
+// Show progress indicator
 AnimatedVisibility(
-    visible = progress in 1f..99f,
-    enter = scaleIn(),
-    exit = scaleOut()
+    visible = progress in 1f..99f
 ) {
-    Box(
-        modifier = Modifier.fillMaxSize(),
-        contentAlignment = Alignment.Center
+    LinearProgressIndicator(
+        progress = { progress / 100f }
+    )
+}
+```
+
+### WebView Configuration
+
+```kotlin
+val webState = rememberComposeWebViewState(
+    url = "https://example.com"
+) {
+    configureWebSettings {
+        javaScriptEnabled = true
+        domStorageEnabled = true
+        cacheMode = WebSettings.LOAD_DEFAULT
+    }
+
+    configureWebClients {
+        onPageStarted { view, url, favicon ->
+            // Handle page load start
+        }
+        onPageFinished { view, url ->
+            // Handle page load completion
+        }
+    }
+
+    configureWebChromeClients {
+        onProgressChanged { _, progress ->
+            // Handle progress updates
+        }
+        onReceivedTitle { _, title ->
+            // Handle title updates
+        }
+    }
+}
+```
+
+### Navigation
+
+The `WebViewNavigator` provides methods to control WebView navigation programmatically:
+
+```kotlin
+val navigator = rememberWebViewNavigator()
+val scope = rememberCoroutineScope()
+
+// Navigation controls
+Button(onClick = { 
+    scope.launch {
+        navigator.navigateTo("https://example.com")
+    }
+}) {
+    Text("Navigate")
+}
+
+Row {
+    IconButton(
+        onClick = { 
+            scope.launch {
+                navigator.goBack()
+            }
+        },
+        enabled = navigator.canGoBack
     ) {
-        LinearProgressIndicator(
-            progress = { progress / 100f },
-        )
+        Icon(Icons.Default.ArrowBack, "Back")
+    }
+    
+    IconButton(
+        onClick = { 
+            scope.launch {
+                navigator.goForward()
+            }
+        },
+        enabled = navigator.canGoForward
+    ) {
+        Icon(Icons.Default.ArrowForward, "Forward")
+    }
+    
+    IconButton(onClick = { 
+        scope.launch {
+            navigator.reload()
+        }
+    }) {
+        Icon(Icons.Default.Refresh, "Reload")
+    }
+    
+    IconButton(onClick = { 
+        scope.launch {
+            navigator.stopLoading()
+        }
+    }) {
+        Icon(Icons.Default.Close, "Stop")
     }
 }
 
-
+// Use with ComposeWebView
+ComposeWebView(
+    modifier = Modifier.fillMaxSize(),
+    state = webState,
+    navigator = navigator
+)
 ```
 
-I've used `KOTLIN DSL` because it's syntax is easier to read & implement.
+Available navigation methods:
+- `navigateTo(url: String)`: Navigate to a specific URL
+- `goBack()`: Navigate back in history
+- `goForward()`: Navigate forward in history
+- `reload()`: Reload current page
+- `stopLoading()`: Stop current loading
+- `clearHistory()`: Clear navigation history
+- `clearCache()`: Clear cache 
+
+ 
 
 
+### Multiple WebView Instances
+
+Each ComposeWebView instance can be uniquely identified using a key:
+
+```kotlin
+ComposeWebView(
+    state = webState1,
+    key = "webview1"
+)
+
+ComposeWebView(
+    state = webState2,
+    key = "webview2"
+)
+```
 
 ## License
 
+```
 MIT License
 
-Copyright (c) 2024 Dev Atri
+Copyright (c) 2024 Dev Atrii
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -168,11 +275,6 @@ AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
 LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
+```
 
----
-
-### 📱 Created & Maintained By
-
-**Dev Atri**
-* [YouTube Channel](https://www.youtube.com/@devatrii/videos) - Subscribe for Android & Kotlin development tutorials
-* Follow for more Android development content and tutorials
+ 

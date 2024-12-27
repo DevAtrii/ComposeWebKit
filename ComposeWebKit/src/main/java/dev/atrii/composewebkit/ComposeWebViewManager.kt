@@ -33,21 +33,9 @@ class ComposeWebViewManager(
     var webView: WebView,
     val block: ComposeWebViewManager.() -> Unit = {},
 ) {
-    private var webClients: WebViewClient? = null
-    private var onProgressChangedHandler: ((WebView?, Int) -> Unit)? = null
+    private var webClients: WebViewClient? = object : WebViewClient(){}
 
-    private var webChromeClients: WebChromeClient = object : WebChromeClient() {
-        override fun onProgressChanged(view: WebView?, newProgress: Int) {
-            super.onProgressChanged(view, newProgress)
-            onProgressChangedHandler?.invoke(view, newProgress)
-        }
-    }
-
-    private var onErrorOccurs: (WebView?, WebResourceRequest?, WebResourceError?) -> Unit =
-        { _, _, _ -> }
-    private var onPageStarts: (WebView?, String?, Bitmap?) -> Unit = { _, _, _ -> }
-    private var onPageFinishes: (WebView?, String?) -> Unit = { _, _ -> }
-
+    private var webChromeClients: WebChromeClient = object : WebChromeClient() {}
 
     init {
         if (url != null) {
@@ -58,43 +46,6 @@ class ComposeWebViewManager(
 
 
     private fun setupWebView() {
-        if (webClients == null) {
-            webClients = object : WebViewClient() {
-                override fun onPageStarted(view: WebView?, url: String?, favicon: Bitmap?) {
-                    super.onPageStarted(view, url, favicon)
-                    onPageStarts(
-                        view,
-                        url,
-                        favicon
-                    )
-                }
-
-                @SuppressLint("NewApi")
-                override fun onReceivedError(
-                    view: WebView?,
-                    request: WebResourceRequest?,
-                    error: WebResourceError?,
-                ) {
-                    super.onReceivedError(view, request, error)
-                    onErrorOccurs(
-                        view,
-                        request,
-                        error
-                    )
-                }
-
-
-                override fun onPageFinished(view: WebView?, url: String?) {
-                    super.onPageFinished(view, url)
-                    onPageFinishes(
-                        view,
-                        url
-                    )
-                }
-
-            }
-
-        }
         webView.webViewClient = webClients!!
         webView.webChromeClient = webChromeClients
         this.block()
@@ -111,20 +62,5 @@ class ComposeWebViewManager(
         webView.webChromeClient = webChromeClients
     }
 
-    internal fun updateOnErrorOccurs(handler: (WebView?, WebResourceRequest?, WebResourceError?) -> Unit) {
-        onErrorOccurs = handler
-    }
-
-    internal fun updateOnPageStarts(handler: (WebView?, String?, Bitmap?) -> Unit) {
-        onPageStarts = handler
-    }
-
-    internal fun updateOnPageFinishes(handler: (WebView?, String?) -> Unit) {
-        onPageFinishes = handler
-    }
-
-    internal fun updateOnProgressChanged(handler: (WebView?, Int?) -> Unit) {
-        onProgressChangedHandler = handler
-    }
 
 }

@@ -1,19 +1,19 @@
 package dev.atrii.composewebkit
 
-import android.os.Bundle
-import android.view.ViewGroup
-import android.webkit.WebView
+import android.util.Log
 import androidx.activity.compose.BackHandler
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.DisposableEffect
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.saveable.rememberSaveable
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.viewinterop.AndroidView
+import androidx.lifecycle.viewmodel.compose.viewModel
+import dev.atrii.composewebkit.interfaces.WebViewNavigator
+import dev.atrii.composewebkit.interfaces.rememberWebViewNavigator
+import dev.atrii.composewebkit.states.Pull2RefreshState
+import kotlinx.coroutines.delay
+import java.util.UUID
 
 /**
  * A composable WebView wrapper that provides state management and configuration options.
@@ -22,54 +22,51 @@ import androidx.compose.ui.viewinterop.AndroidView
 @Composable
 fun ComposeWebView(
     modifier: Modifier = Modifier,
-    webViewState: ComposeWebViewState,
+    state: ComposeWebViewState,
+    navigator: WebViewNavigator = rememberWebViewNavigator(),
+    pull2Refresh: Boolean = false,
+    isRefreshing: Boolean = false,
+    onRefresh: () -> Unit = { },
+    key: String = remember { state.url },
 ) {
-
-
     val context = LocalContext.current
-    val initialUrl = rememberSaveable { webViewState.url }
-    val webViewKey = rememberSaveable { "webview_$initialUrl".hashCode() }
-    var webViewBundle by rememberSaveable { mutableStateOf<Bundle?>(null) }
-    val webView = remember(webViewKey) {
-        WebView(context).apply {
-            layoutParams = ViewGroup.LayoutParams(
-                ViewGroup.LayoutParams.MATCH_PARENT,
-                ViewGroup.LayoutParams.MATCH_PARENT
-            )
-            webViewBundle?.let { bundle ->
-                restoreState(bundle)
-            } ?: loadUrl(initialUrl)
-        }
+    val viewModel = viewModel {
+        ComposeWebViewModel(
+            pull2Refresh = pull2Refresh,
+            state = state,
+        )
     }
 
-    var manager by remember {
-        mutableStateOf<ComposeWebViewManager?>(null)
+    val instance = remember(key) { viewModel.getOrCreateInstance(key, context = context) }
+
+    LaunchedEffect(true) {
+        viewModel.setOnRefreshListener(key, onRefresh = onRefresh)
+        viewModel.setNavigator(key, navigator = navigator)
+        viewModel.setManager(key, block = state.block)
     }
+
+    LaunchedEffect(isRefreshing) {
+        if (isRefreshing)
+            viewModel.startRefreshing(key)
+        else
+            viewModel.stopRefreshing(key)
+    }
+
     AndroidView(
         modifier = modifier,
-        factory = { webView },
-        update = { view ->
-            manager = view.initWithManager(
-                url = null,
-            ) {
-                webViewState.block(this)
+        factory = {
+            if (pull2Refresh) {
+                instance.swipeRefreshLayout
+            } else {
+                instance.webView
             }
-        }
+        },
+        update = { _ -> }
     )
 
-    BackHandler(webViewState.handleBackPressEvents) {
-        manager ?: return@BackHandler
-        webViewState.onBackPress(manager!!)
+    BackHandler(state.handleBackPressEvents) {
+        state.onBackPress(instance.manager)
     }
-
-    DisposableEffect(webViewKey) {
-        onDispose {
-            webViewBundle = Bundle().also { bundle ->
-                webView.saveState(bundle)
-            }
-        }
-    }
-
 }
 
 /**
@@ -79,7 +76,7 @@ data class ComposeWebViewState(
     val url: String,
     val onBackPress: (ComposeWebViewManager) -> Unit,
     val handleBackPressEvents: Boolean = true,
-    val block: ComposeWebViewManager.() -> Unit = {},
+    val block: ComposeWebViewManager.() -> Unit,
 )
 
 /**
@@ -91,7 +88,7 @@ fun rememberComposeWebViewState(
     handleBackPressEvents: Boolean = true,
     onBackPress: (ComposeWebViewManager) -> Unit,
     key: Any? = null,
-    configure: ComposeWebViewManager.() -> Unit = {},
+    configure: ComposeWebViewManager.() -> Unit,
 ): ComposeWebViewState {
     return remember(key) {
         ComposeWebViewState(

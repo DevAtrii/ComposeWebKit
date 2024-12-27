@@ -6,7 +6,7 @@ plugins {
 }
 
 group = "com.github.devatrii"
-version = "1.0"
+version = "2.0"
 
 android {
     namespace = "dev.atrii.composewebkit"
@@ -54,6 +54,9 @@ android {
 dependencies {
     implementation(libs.androidx.activity.compose)
     implementation(platform(libs.androidx.compose.bom))
+    implementation(libs.androidx.swiperefreshlayout)
+    implementation(libs.androidx.lifecycle.runtime.compose)
+    implementation(libs.androidx.lifecycle.viewmodel.compose)
 }
 afterEvaluate {
     publishing {
@@ -62,7 +65,7 @@ afterEvaluate {
                 from(components["release"])
                 groupId = "com.github.devatrii"
                 artifactId = "ComposeWebKit"
-                version = "1.0"
+                version = "2.0"
             }
         }
     }
