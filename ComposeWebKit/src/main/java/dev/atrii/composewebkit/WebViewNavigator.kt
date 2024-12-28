@@ -3,8 +3,11 @@ package dev.atrii.composewebkit
 import android.webkit.WebView
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.Stable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.setValue
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableSharedFlow
@@ -66,8 +69,11 @@ public class WebViewNavigator(private val coroutineScope: CoroutineScope) {
 
     private val navigationEvents: MutableSharedFlow<NavigationEvent> = MutableSharedFlow(replay = 1)
 
+    private var webView: WebView? = null
+
     // Use Dispatchers.Main to ensure that the webview methods are called on UI thread
     internal suspend fun WebView.handleNavigationEvents(): Nothing = withContext(Dispatchers.Main) {
+        webView = this@handleNavigationEvents
         navigationEvents.collect { event ->
             when (event) {
                 is NavigationEvent.Back -> goBack()
@@ -143,6 +149,23 @@ public class WebViewNavigator(private val coroutineScope: CoroutineScope) {
             )
         }
     }
+
+    /**
+     * True when the web view is able to navigate backwards, false otherwise.
+     */
+    public fun canGoBack(): Boolean = webView?.canGoBack() ?: false
+
+
+    /**
+     * True when the web view is able to navigate forwards, false otherwise.
+     */
+    public fun canGoForward(): Boolean = webView?.canGoForward() ?: false
+
+    /**
+     * Gets whether the page can go back or forward the given number of steps.
+     */
+    public fun canGoBackOrForward(steps: Int): Boolean = webView?.canGoBackOrForward(steps) ?: false
+
 
     public fun clearHistory(includeDiskFiles: Boolean) {
         coroutineScope.launch { navigationEvents.emit(NavigationEvent.ClearHistory) }

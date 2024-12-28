@@ -41,9 +41,15 @@ class MainActivity : ComponentActivity() {
                         var isRefreshing by rememberSaveable { mutableStateOf(false) }
                         val scope = rememberCoroutineScope()
                         val navigator = rememberWebViewNavigator()
+                        navigator.canGoBack()
                         val state = rememberComposeWebViewState(
                             url = "https://google.com",
-                            onBackPress = {}
+                            onBackPress = {
+                                if (navigator.canGoBack())
+                                    navigator.navigateBack()
+                                else
+                                    finish()
+                            }
                         ) {
                             configureWebSettings {
                                 javaScriptEnabled = true
@@ -66,21 +72,6 @@ class MainActivity : ComponentActivity() {
                             }
                         )
 
-                        ComposeWebView(
-                            modifier = Modifier.fillMaxSize().weight(1f),
-                            state = state,
-                            pull2Refresh = true,
-                            isRefreshing = isRefreshing,
-                            navigator = navigator,
-                            onRefresh = {
-                                scope.launch {
-                                    isRefreshing = true
-                                    navigator.reload()
-                                    delay(1000)
-                                    isRefreshing = false
-                                }
-                            }
-                        )
                     }
                 }
 
