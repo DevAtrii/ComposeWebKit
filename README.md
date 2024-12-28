@@ -373,6 +373,72 @@ Each ComposeWebView instance can be uniquely identified using a key:
 }
 ```
 
+
+### Picking Files Example
+
+Here's how you can pick files
+
+```kotlin
+var filePathsCallback by remember {
+    mutableStateOf<ValueCallback<Array<Uri>>?>(null)
+}
+var fileChooserCallbackFunction by remember {
+    mutableStateOf<((Array<Uri>?) -> Unit)?>(null)
+}
+
+val launcher =
+    rememberLauncherForActivityResult(contract = ActivityResultContracts.PickMultipleVisualMedia()) { result ->
+        fileChooserCallbackFunction?.invoke(result.toTypedArray())
+        fileChooserCallbackFunction = null
+    }
+...
+val navigator = rememberWebViewNavigator()
+val state = rememberComposeWebViewState(
+    url = "https://atrii.dev/tools/image-converter/",
+    onBackPress = {
+        if (navigator.canGoBack())
+            navigator.navigateBack()
+        else
+            finish()
+    }
+) {
+    configureWebChromeClients {
+        onShowFileChooser { _, webFilePathCallback, _ ->
+            filePathsCallback?.onReceiveValue(null)
+            filePathsCallback = webFilePathCallback
+
+            try {
+                fileChooserCallbackFunction = { uris ->
+                    webFilePathCallback?.onReceiveValue(uris)
+                    filePathsCallback = null
+                }
+
+                launcher.launch(
+                    PickVisualMediaRequest(
+                        mediaType = ActivityResultContracts.PickVisualMedia.ImageOnly
+                    )
+                )
+                true
+            } catch (e: Exception) {
+                webFilePathCallback?.onReceiveValue(null)
+                filePathsCallback = null
+                false
+            }
+        }
+    }
+}
+
+ComposeWebView(
+    modifier = Modifier,
+    state = state,
+    navigator = navigator,
+    pull2Refresh = false,
+    key = "web1"
+)
+
+
+```
+
 ## License
 
 ```

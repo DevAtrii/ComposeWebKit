@@ -1,11 +1,16 @@
 package dev.atrii.composewebkitapp
 
+import android.net.Uri
 import android.os.Bundle
 import android.util.Log
+import android.webkit.ValueCallback
 import android.webkit.WebSettings
 import androidx.activity.ComponentActivity
+import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
+import androidx.activity.result.PickVisualMediaRequest
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.core.Animatable
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
@@ -32,19 +37,32 @@ class MainActivity : ComponentActivity() {
         private const val TAG = "MainActivity"
     }
 
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
         setContent {
             ComposeWebKitTheme {
                 Scaffold(modifier = Modifier.fillMaxSize()) { innerPadding ->
+                    var filePathsCallback by remember {
+                        mutableStateOf<ValueCallback<Array<Uri>>?>(null)
+                    }
+                    var fileChooserCallbackFunction by remember {
+                        mutableStateOf<((Array<Uri>?) -> Unit)?>(null)
+                    }
+
+                    val launcher =
+                        rememberLauncherForActivityResult(contract = ActivityResultContracts.PickMultipleVisualMedia()) { result ->
+                            fileChooserCallbackFunction?.invoke(result.toTypedArray())
+                            fileChooserCallbackFunction = null
+                        }
 
                     var isRefreshing by rememberSaveable { mutableStateOf(false) }
                     val progress = remember { Animatable(0f) }
                     val scope = rememberCoroutineScope()
                     val navigator = rememberWebViewNavigator()
                     val state = rememberComposeWebViewState(
-                        url = "https://atrii.dev",
+                        url = "https://atrii.dev/tools/image-converter/",
                         onBackPress = {
                             if (navigator.canGoBack())
                                 navigator.navigateBack()
@@ -62,12 +80,35 @@ class MainActivity : ComponentActivity() {
                             }
                         }
                         configureWebChromeClients {
+                            onShowFileChooser { _, webFilePathCallback, _ ->
+                                filePathsCallback?.onReceiveValue(null)
+                                filePathsCallback = webFilePathCallback
+
+                                try {
+                                    fileChooserCallbackFunction = { uris ->
+                                        webFilePathCallback?.onReceiveValue(uris)
+                                        filePathsCallback = null
+                                    }
+
+                                    launcher.launch(
+                                        PickVisualMediaRequest(
+                                            mediaType = ActivityResultContracts.PickVisualMedia.ImageOnly
+                                        )
+                                    )
+                                    true
+                                } catch (e: Exception) {
+                                    webFilePathCallback?.onReceiveValue(null)
+                                    filePathsCallback = null
+                                    false
+                                }
+                            }
                             onProgressChanged { webView, newProgress ->
                                 isRefreshing = newProgress in 1..99
                                 scope.launch {
                                     progress.animateTo(newProgress.toFloat())
                                 }
                             }
+
                         }
                     }
 
@@ -84,13 +125,6 @@ class MainActivity : ComponentActivity() {
                             key = "web1"
                         )
 
-                        ComposeWebView(
-                            modifier = Modifier.weight(1f),
-                            state = state,
-                            navigator = navigator,
-                            pull2Refresh = false,
-                            key = "web2"
-                        )
                     }
 
                 }
