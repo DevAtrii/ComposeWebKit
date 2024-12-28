@@ -1,6 +1,5 @@
 package dev.atrii.composewebkit
 
-import android.util.Log
 import androidx.activity.compose.BackHandler
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -8,12 +7,12 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.viewinterop.AndroidView
-import androidx.lifecycle.viewmodel.compose.viewModel
-import dev.atrii.composewebkit.interfaces.WebViewNavigator
-import dev.atrii.composewebkit.interfaces.rememberWebViewNavigator
-import dev.atrii.composewebkit.states.Pull2RefreshState
-import kotlinx.coroutines.delay
-import java.util.UUID
+import androidx.compose.runtime.DisposableEffect
+import androidx.compose.runtime.saveable.rememberSaveable
+import android.os.Bundle
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.setValue
 
 /**
  * A composable WebView wrapper that provides state management and configuration options.
@@ -30,26 +29,37 @@ fun ComposeWebView(
     key: String = remember { state.url },
 ) {
     val context = LocalContext.current
-    val viewModel = viewModel {
-        ComposeWebViewModel(
-            pull2Refresh = pull2Refresh,
+    var webViewBundle by rememberSaveable { mutableStateOf<Bundle?>(null) }
+
+    val webViewState = remember(key) {
+        ComposeWebViewInstancesManager(
             state = state,
+            pull2Refresh = pull2Refresh,
+            webViewBundle = webViewBundle
         )
     }
 
-    val instance = remember(key) { viewModel.getOrCreateInstance(key, context = context) }
+    val instance = remember(key) { webViewState.getOrCreateInstance(key,context=context) }
 
     LaunchedEffect(true) {
-        viewModel.setOnRefreshListener(key, onRefresh = onRefresh)
-        viewModel.setNavigator(key, navigator = navigator)
-        viewModel.setManager(key, block = state.block)
+        webViewState.setOnRefreshListener(key, onRefresh)
+        webViewState.setNavigator(key, navigator)
+        webViewState.setManager(key, state.block)
     }
 
     LaunchedEffect(isRefreshing) {
         if (isRefreshing)
-            viewModel.startRefreshing(key)
+            webViewState.startRefreshing(key)
         else
-            viewModel.stopRefreshing(key)
+            webViewState.stopRefreshing(key)
+    }
+
+    DisposableEffect(key) {
+        onDispose {
+            webViewBundle = Bundle().also { bundle ->
+                instance.webView.saveState(bundle)
+            }
+        }
     }
 
     AndroidView(

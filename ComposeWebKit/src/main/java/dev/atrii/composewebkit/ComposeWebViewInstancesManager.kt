@@ -1,40 +1,43 @@
 package dev.atrii.composewebkit
 
-import android.annotation.SuppressLint
 import android.content.Context
+import android.os.Bundle
 import android.view.ViewGroup
 import android.webkit.WebView
-import androidx.lifecycle.ViewModel
-import androidx.lifecycle.viewModelScope
 import androidx.swiperefreshlayout.widget.SwipeRefreshLayout
-import dev.atrii.composewebkit.interfaces.WebViewNavigator
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
-class ComposeWebViewModel(
-    private val   state: ComposeWebViewState,
-    private val  pull2Refresh: Boolean = false,
-):ViewModel() {
+
+class ComposeWebViewInstancesManager(
+    private val state: ComposeWebViewState,
+    private val webViewBundle: Bundle?,
+    private val pull2Refresh: Boolean = false,
+) {
 
     // Create a data class to hold the view instances
     data class WebViewContainer(
         val webView: WebView,
         val swipeRefreshLayout: SwipeRefreshLayout,
-        var manager: ComposeWebViewManager
+        var manager: ComposeWebViewManager,
     )
 
     // Use a map to store multiple instances
     private val viewInstances = mutableMapOf<String, WebViewContainer>()
 
     // Factory method to create or get existing instance
-    fun getOrCreateInstance(key: String,context: Context): WebViewContainer {
+    fun getOrCreateInstance(key: String, context: Context): WebViewContainer {
         return viewInstances.getOrPut(key) {
-
+            var isStateRestored = false
             val webView = WebView(context).apply {
                 layoutParams = ViewGroup.LayoutParams(
                     ViewGroup.LayoutParams.MATCH_PARENT,
                     ViewGroup.LayoutParams.MATCH_PARENT
                 )
+                webViewBundle?.let { bundle ->
+                    restoreState(bundle)
+                    isStateRestored = true
+                }
             }
 
             // Create new SwipeRefreshLayout
@@ -56,7 +59,8 @@ class ComposeWebViewModel(
             )
 
             // Load initial URL
-            webView.loadUrl(state.url)
+            if (!isStateRestored)
+                webView.loadUrl(state.url)
 
             WebViewContainer(webView, swipeRefreshLayout, manager)
         }
@@ -94,12 +98,5 @@ class ComposeWebViewModel(
         }
     }
 
-    override fun onCleared() {
-        super.onCleared()
-        viewInstances.forEach { (_, container) ->
-            container.swipeRefreshLayout.removeAllViews()
-            container.webView.destroy()
-        }
-        viewInstances.clear()
-    }
+
 }
