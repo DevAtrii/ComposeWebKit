@@ -1,13 +1,9 @@
 package dev.atrii.composewebkit
 
-import android.annotation.SuppressLint
-import android.graphics.Bitmap
 import android.webkit.WebChromeClient
-import android.webkit.WebResourceError
-import android.webkit.WebResourceRequest
-
 import android.webkit.WebView
 import android.webkit.WebViewClient
+import androidx.compose.runtime.Stable
 
 
 /**
@@ -28,6 +24,7 @@ fun WebView.initWithManager(
  * Manages WebView configuration and event handling.
  * Provides access to WebView clients and various callback handlers.
  */
+@Stable
 class ComposeWebViewManager(
     url: String?,
     var webView: WebView,

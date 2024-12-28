@@ -4,11 +4,14 @@ import android.content.Context
 import android.os.Bundle
 import android.view.ViewGroup
 import android.webkit.WebView
+import androidx.compose.runtime.Stable
 import androidx.swiperefreshlayout.widget.SwipeRefreshLayout
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 
+
+@Stable
 class ComposeWebViewInstancesManager(
     private val state: ComposeWebViewState,
     private val webViewBundle: Bundle?,
@@ -59,8 +62,10 @@ class ComposeWebViewInstancesManager(
             )
 
             // Load initial URL
-            if (!isStateRestored)
+            if (!isStateRestored) {
+
                 webView.loadUrl(state.url)
+            }
 
             WebViewContainer(webView, swipeRefreshLayout, manager)
         }

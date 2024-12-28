@@ -53,25 +53,30 @@ Add these permissions to your `AndroidManifest.xml`:
     ...
 >
 ```
-
+ 
 ## Basic Usage
 
 ```kotlin
-val webState = rememberComposeWebViewState(
-    url = "https://example.com",
-    onBackPress = { manager ->
-        if (manager.webView.canGoBack())
-            manager.webView.goBack()
+ val navigator = rememberWebViewNavigator()
+val state = rememberComposeWebViewState(
+    url = "https://atrii.dev",
+    onBackPress = {
+        if (navigator.canGoBack())
+            navigator.navigateBack()
         else
             finish()
     }
 ) {
-    // Configure WebView here
+    configureWebSettings {
+        javaScriptEnabled = true
+    }
 }
 
 ComposeWebView(
-    modifier = Modifier.fillMaxSize(),
-    state = webState
+    modifier = Modifier,
+    state = state,
+    navigator = navigator,
+    pull2Refresh = false,
 )
 ```
 
@@ -83,19 +88,35 @@ ComposeWebView(
 var isRefreshing by rememberSaveable { mutableStateOf(false) }
 val scope = rememberCoroutineScope()
 val navigator = rememberWebViewNavigator()
+val state = rememberComposeWebViewState(
+    url = "https://atrii.dev",
+    onBackPress = {
+        if (navigator.canGoBack())
+            navigator.navigateBack()
+        else
+            finish()
+    }
+) {
+    configureWebSettings {
+        javaScriptEnabled = true
+        cacheMode = WebSettings.LOAD_CACHE_ELSE_NETWORK
+    }
+    configureWebChromeClients {
+        onProgressChanged { _, newProgress ->
+            isRefreshing = newProgress in 1..99
+        }
+    }
+}
 
 ComposeWebView(
-    modifier = Modifier.fillMaxSize(),
-    state = webState,
+    modifier = Modifier,
+    state = state,
+    navigator = navigator,
     pull2Refresh = true,
     isRefreshing = isRefreshing,
-    navigator = navigator,
     onRefresh = {
         scope.launch {
-            isRefreshing = true
             navigator.reload()
-            delay(1000)
-            isRefreshing = false
         }
     }
 )
@@ -104,25 +125,54 @@ ComposeWebView(
 ### Progress Tracking
 
 ```kotlin
-var progress by remember { mutableFloatStateOf(0f) }
-
-val webState = rememberComposeWebViewState(
-    url = "https://example.com"
+var isRefreshing by rememberSaveable { mutableStateOf(false) }
+val progress = remember { Animatable(0f) }
+val scope = rememberCoroutineScope()
+val navigator = rememberWebViewNavigator()
+val state = rememberComposeWebViewState(
+    url = "https://atrii.dev",
+    onBackPress = {
+        if (navigator.canGoBack())
+            navigator.navigateBack()
+        else
+            finish()
+    }
 ) {
+    configureWebSettings {
+        javaScriptEnabled = true
+        cacheMode = WebSettings.LOAD_CACHE_ELSE_NETWORK
+    }
     configureWebChromeClients {
-        onProgressChanged { _, newProgress ->
-            progress = newProgress.toFloat()
+        onProgressChanged { webView, newProgress ->
+            isRefreshing = newProgress in 1..99
+            scope.launch {
+                progress.animateTo(newProgress.toFloat())
+            }
         }
     }
 }
 
-// Show progress indicator
+ComposeWebView(
+    modifier = Modifier,
+    state = state,
+    navigator = navigator,
+    pull2Refresh = false
+)
+
 AnimatedVisibility(
-    visible = progress in 1f..99f
+    modifier = Modifier.fillMaxSize(),
+    visible = progress.value in 1f..99f,
+    enter = scaleIn() + fadeIn(),
+    exit = scaleOut() + fadeOut()
 ) {
-    LinearProgressIndicator(
-        progress = { progress / 100f }
-    )
+    Box(
+        modifier = Modifier.fillMaxSize(),
+        contentAlignment = Alignment.Center
+    ) {
+        CircularProgressIndicator(
+            progress = { progress.value / 100f }
+        )
+    }
 }
 ```
 
@@ -163,64 +213,124 @@ val webState = rememberComposeWebViewState(
 The `WebViewNavigator` provides methods to control WebView navigation programmatically:
 
 ```kotlin
-val navigator = rememberWebViewNavigator()
+var isRefreshing by rememberSaveable { mutableStateOf(false) }
+val progress = remember { Animatable(0f) }
 val scope = rememberCoroutineScope()
-
-// Navigation controls
-Button(onClick = { 
-    scope.launch {
-        navigator.navigateTo("https://example.com")
+val navigator = rememberWebViewNavigator()
+val state = rememberComposeWebViewState(
+    url = "https://atrii.dev",
+    onBackPress = {
+        if (navigator.canGoBack())
+            navigator.navigateBack()
+        else
+            finish()
     }
-}) {
-    Text("Navigate")
-}
-
-Row {
-    IconButton(
-        onClick = { 
-            scope.launch {
-                navigator.goBack()
-            }
-        },
-        enabled = navigator.canGoBack
-    ) {
-        Icon(Icons.Default.ArrowBack, "Back")
+) {
+    configureWebSettings {
+        javaScriptEnabled = true
+        cacheMode = WebSettings.LOAD_CACHE_ELSE_NETWORK
     }
-    
-    IconButton(
-        onClick = { 
-            scope.launch {
-                navigator.goForward()
-            }
-        },
-        enabled = navigator.canGoForward
-    ) {
-        Icon(Icons.Default.ArrowForward, "Forward")
-    }
-    
-    IconButton(onClick = { 
-        scope.launch {
-            navigator.reload()
+    configureWebClients {
+        onPageStarted { view, url, favicon ->
+            Log.d(TAG, "onCreate: $url")
         }
-    }) {
-        Icon(Icons.Default.Refresh, "Reload")
     }
-    
-    IconButton(onClick = { 
-        scope.launch {
-            navigator.stopLoading()
+    configureWebChromeClients {
+        onProgressChanged { webView, newProgress ->
+            isRefreshing = newProgress in 1..99
+            scope.launch {
+                progress.animateTo(newProgress.toFloat())
+            }
         }
-    }) {
-        Icon(Icons.Default.Close, "Stop")
     }
 }
 
-// Use with ComposeWebView
-ComposeWebView(
-    modifier = Modifier.fillMaxSize(),
-    state = webState,
-    navigator = navigator
-)
+Column(
+    modifier = Modifier
+        .fillMaxSize()
+        .padding(innerPadding)
+) {
+    Column(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalAlignment = Alignment.CenterHorizontally
+    ) {
+        Button(onClick = {
+            scope.launch {
+                navigator.loadUrl("https://google.com")
+            }
+        }) {
+            Text("Navigate")
+        }
+
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween
+        ) {
+            IconButton(
+                onClick = {
+                    scope.launch {
+                        navigator.navigateBack()
+                    }
+                },
+            ) {
+                Icon(Icons.Default.ArrowBack, "Back")
+            }
+
+            IconButton(
+                onClick = {
+                    scope.launch {
+                        navigator.navigateForward()
+                    }
+                },
+            ) {
+                Icon(Icons.Default.ArrowForward, "Forward")
+            }
+
+            IconButton(onClick = {
+                scope.launch {
+                    navigator.reload()
+                }
+            }) {
+                Icon(Icons.Default.Refresh, "Reload")
+            }
+
+            IconButton(onClick = {
+                scope.launch {
+                    navigator.stopLoading()
+                }
+            }) {
+                Icon(Icons.Default.Close, "Stop")
+            }
+        }
+
+    }
+    Box(modifier = Modifier.weight(1f)) {
+        ComposeWebView(
+            modifier = Modifier,
+            state = state,
+            navigator = navigator,
+            pull2Refresh = false
+        )
+
+
+        androidx.compose.animation.AnimatedVisibility(
+            modifier = Modifier.fillMaxSize(),
+            visible = progress.value in 1f..99f,
+            enter = scaleIn() + fadeIn(),
+            exit = scaleOut() + fadeOut()
+        ) {
+            Box(
+                modifier = Modifier.fillMaxSize(),
+                contentAlignment = Alignment.Center
+            ) {
+                CircularProgressIndicator(
+                    progress = { progress.value / 100f }
+                )
+            }
+        }
+    }
+
+}
 ```
 
 Available navigation methods:
@@ -240,15 +350,27 @@ Available navigation methods:
 Each ComposeWebView instance can be uniquely identified using a key:
 
 ```kotlin
-ComposeWebView(
-    state = webState1,
-    key = "webview1"
-)
+ Column(
+    modifier = Modifier
+        .fillMaxSize()
+        .padding(innerPadding)
+) {
+    ComposeWebView(
+        modifier = Modifier.weight(1f),
+        state = state,
+        navigator = navigator,
+        pull2Refresh = false,
+        key = "web1"
+    )
 
-ComposeWebView(
-    state = webState2,
-    key = "webview2"
-)
+    ComposeWebView(
+        modifier = Modifier.weight(1f),
+        state = state,
+        navigator = navigator,
+        pull2Refresh = false,
+        key = "web2"
+    )
+}
 ```
 
 ## License
