@@ -37,7 +37,7 @@ dependencyResolutionManagement {
 2. Add dependency in `build.gradle.kts`:
 ```kotlin
 dependencies {
-    implementation("com.github.DevAtrii:ComposeWebKit:latest-version")
+    implementation("com.github.DevAtrii:ComposeWebKit:3.2.1")
 }
 ```
 
