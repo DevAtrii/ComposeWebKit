@@ -44,6 +44,15 @@ class MainActivity : ComponentActivity() {
         setContent {
             ComposeWebKitTheme {
                 Scaffold(modifier = Modifier.fillMaxSize()) { innerPadding ->
+
+
+                    AppWebView(
+                        modifier = Modifier.padding(innerPadding),
+                        url = "https://atrii.dev",
+                        onFinishRequest = {}
+                    )
+                    return@Scaffold
+
                     var filePathsCallback by remember {
                         mutableStateOf<ValueCallback<Array<Uri>>?>(null)
                     }
@@ -62,7 +71,7 @@ class MainActivity : ComponentActivity() {
                     val scope = rememberCoroutineScope()
                     val navigator = rememberWebViewNavigator()
                     val state = rememberComposeWebViewState(
-                        url = "https://atrii.dev/tools/image-converter/",
+                        url = "https://poe.com/hanh_trinh_tin_mung",
                         onBackPress = {
                             if (navigator.canGoBack())
                                 navigator.navigateBack()
@@ -72,7 +81,7 @@ class MainActivity : ComponentActivity() {
                     ) {
                         configureWebSettings {
                             javaScriptEnabled = true
-                            cacheMode = WebSettings.LOAD_CACHE_ELSE_NETWORK
+                            cacheMode = WebSettings.LOAD_NO_CACHE
                         }
                         configureWebClients {
                             onPageStarted { view, url, favicon ->

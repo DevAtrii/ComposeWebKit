@@ -37,6 +37,7 @@ class ComposeWebViewInstancesManager(
                     ViewGroup.LayoutParams.MATCH_PARENT,
                     ViewGroup.LayoutParams.MATCH_PARENT
                 )
+                fitsSystemWindows = true
                 webViewBundle?.let { bundle ->
                     restoreState(bundle)
                     isStateRestored = true
